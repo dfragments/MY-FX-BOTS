@@ -1,0 +1,140 @@
+//+------------------------------------------------------------------+
+//| Forex Trading Bot: Buy Stop & Sell Stop at Pip Intervals (MQL5) |
+//+------------------------------------------------------------------+
+#property strict
+
+input double LotSize = 0.1;       // User-defined lot size
+input int OrderCount = 3;         // Number of Buy Stop/Sell Stop orders
+input int PipInterval = 1000;     // Interval in pips between orders
+input double BuyTriggerLevel = 3100; // Price level to trigger Buy Stop orders
+input double SellTriggerLevel = 3150; // Price level to trigger Sell Stop orders
+input int StopLossPips = 2000;      // Stop loss in pips
+input int WaitPips = 30;           // Wait 30 pips before placing orders
+
+bool BuyTriggered = false;
+bool SellTriggered = false;
+
+double BuyStopTakeProfit;
+double SellStopTakeProfit;
+
+// Function to update chart comment
+void UpdateChartMessage(string message) {
+   Comment(message);
+}
+
+// Function to place Buy Stop orders
+void SetBuyStops(double triggerPrice) {
+   double price = triggerPrice + PipInterval * _Point;
+   double stopLoss = price - (StopLossPips * _Point);
+   double takeProfit = price + (30 * StopLossPips * _Point);
+   BuyStopTakeProfit = takeProfit;
+   
+   for (int i = 0; i < OrderCount; i++) {
+      for (int j = 0; j < 3; j++) {
+         MqlTradeRequest request;
+         MqlTradeResult result;
+         ZeroMemory(request);
+         ZeroMemory(result);
+         
+         request.action = TRADE_ACTION_PENDING;
+         request.type = ORDER_TYPE_BUY_STOP;
+         request.symbol = Symbol();
+         request.volume = LotSize;
+         request.price = price;
+         request.sl = stopLoss;
+         request.tp = takeProfit;
+         request.deviation = 3;
+         request.magic = 0;
+         request.comment = "Buy Stop Order";
+         request.type_filling = ORDER_FILLING_IOC;
+         request.type_time = ORDER_TIME_GTC;
+         
+         if (OrderSend(request, result)) {
+            Print("✅ Buy Stop order placed at ", DoubleToString(price, _Digits));
+            UpdateChartMessage("✅ Buy Stop order placed at " + DoubleToString(price, _Digits));
+         } else {
+            Print("❌ Error placing Buy Stop order: ", result.retcode);
+            UpdateChartMessage("❌ Error placing Buy Stop order: " + IntegerToString(result.retcode));
+         }
+      }
+      price += PipInterval * _Point;
+   }
+}
+
+// Function to place Sell Stop orders
+void SetSellStops(double triggerPrice) {
+   double price = triggerPrice - PipInterval * _Point;
+   double stopLoss = price + (StopLossPips * _Point);
+   double takeProfit = price - (30 * StopLossPips * _Point);
+   SellStopTakeProfit = takeProfit;
+   
+   for (int i = 0; i < OrderCount; i++) {
+      for (int j = 0; j < 3; j++) {
+         MqlTradeRequest request;
+         MqlTradeResult result;
+         ZeroMemory(request);
+         ZeroMemory(result);
+         
+         request.action = TRADE_ACTION_PENDING;
+         request.type = ORDER_TYPE_SELL_STOP;
+         request.symbol = Symbol();
+         request.volume = LotSize;
+         request.price = price;
+         request.sl = stopLoss;
+         request.tp = takeProfit;
+         request.deviation = 3;
+         request.magic = 0;
+         request.comment = "Sell Stop Order";
+         request.type_filling = ORDER_FILLING_IOC;
+         request.type_time = ORDER_TIME_GTC;
+         
+         if (OrderSend(request, result)) {
+            Print("✅ Sell Stop order placed at ", DoubleToString(price, _Digits));
+            UpdateChartMessage("✅ Sell Stop order placed at " + DoubleToString(price, _Digits));
+         } else {
+            Print("❌ Error placing Sell Stop order: ", result.retcode);
+            UpdateChartMessage("❌ Error placing Sell Stop order: " + IntegerToString(result.retcode));
+         }
+      }
+      price -= PipInterval * _Point;
+   }
+}
+
+// Check if Buy Trigger Level is reached
+void CheckBuyTrigger() {
+   if (SymbolInfoDouble(Symbol(), SYMBOL_BID) >= BuyTriggerLevel - (WaitPips * _Point) && 
+       SymbolInfoDouble(Symbol(), SYMBOL_BID) <= BuyTriggerLevel + (WaitPips * _Point) && !BuyTriggered) {
+      Print("🔥 Buy Trigger Activated at ", BuyTriggerLevel);
+      UpdateChartMessage("🔥 Buy Trigger Activated at " + DoubleToString(BuyTriggerLevel, _Digits));
+      SetBuyStops(BuyTriggerLevel);
+      BuyTriggered = true;
+   }
+}
+
+// Check if Sell Trigger Level is reached
+void CheckSellTrigger() {
+   if (SymbolInfoDouble(Symbol(), SYMBOL_ASK) >= SellTriggerLevel - (WaitPips * _Point) && 
+       SymbolInfoDouble(Symbol(), SYMBOL_ASK) <= SellTriggerLevel + (WaitPips * _Point) && !SellTriggered) {
+      Print("🔥 Sell Trigger Activated at ", SellTriggerLevel);
+      UpdateChartMessage("🔥 Sell Trigger Activated at " + DoubleToString(SellTriggerLevel, _Digits));
+      SetSellStops(SellTriggerLevel);
+      SellTriggered = true;
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Expert initialization function                                  |
+//+------------------------------------------------------------------+
+int OnInit() {
+   Print("Bot Initialized: Monitoring price levels...");
+   UpdateChartMessage("Bot Initialized: Monitoring price levels...");
+   return INIT_SUCCEEDED;
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                            |
+//+------------------------------------------------------------------+
+void OnTick() {
+   CheckBuyTrigger();
+   CheckSellTrigger();
+}
