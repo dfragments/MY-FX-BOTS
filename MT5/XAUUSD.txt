@@ -3,12 +3,12 @@
 //+------------------------------------------------------------------+
 #property strict
 
-input double LotSize = 0.1;       // User-defined lot size
+input double LotSize = 0.05;       // User-defined lot size
 input int OrderCount = 8;         // Number of Buy Stop/Sell Stop orders
-input int PipInterval = 1000;     // Interval in pips between orders
+input int PipInterval = 3000;     // Interval in pips between orders
 input double BuyTriggerLevel = 3100; // Price level to trigger Buy Stop orders
 input double SellTriggerLevel = 3150; // Price level to trigger Sell Stop orders
-input int StopLossPips = 2000;      // Stop loss in pips
+input int StopLossPips = 3000;      // Stop loss in pips
 input int WaitPips = 30;           // Wait 30 pips before placing orders
 
 bool BuyTriggered = false;
@@ -26,7 +26,7 @@ void UpdateChartMessage(string message) {
 void SetBuyStops(double triggerPrice) {
    double price = triggerPrice + PipInterval * _Point;
    double stopLoss = price - (StopLossPips * _Point);
-   double takeProfit = price + (30 * StopLossPips * _Point);
+   double takeProfit = price + (10 * StopLossPips * _Point);
    BuyStopTakeProfit = takeProfit;
    
    for (int i = 0; i < OrderCount; i++) {
@@ -65,7 +65,7 @@ void SetBuyStops(double triggerPrice) {
 void SetSellStops(double triggerPrice) {
    double price = triggerPrice - PipInterval * _Point;
    double stopLoss = price + (StopLossPips * _Point);
-   double takeProfit = price - (30 * StopLossPips * _Point);
+   double takeProfit = price - (10 * StopLossPips * _Point);
    SellStopTakeProfit = takeProfit;
    
    for (int i = 0; i < OrderCount; i++) {
